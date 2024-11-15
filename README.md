@@ -58,7 +58,7 @@ python3 personalize_demo_cleanup.py
 - For running the app
   
 ```bash
-flask pandas boto3
+python app.py
 ```
 
 ## Contributing
