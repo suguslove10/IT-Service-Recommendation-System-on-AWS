@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Service Recommender</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-8">AWS Service Recommender</h1>
+        
+        <!-- User Selection -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <label for="user-select" class="block text-gray-700 font-semibold mb-2">Select User:</label>
+            <select id="user-select" class="w-full p-2 border rounded-md">
+                <option value="">Select a user...</option>
+                {% for user in users %}
+                <option value="{{ user }}">User {{ user }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Results Container -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- User History -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">User History</h2>
+                <div id="history-container" class="space-y-2">
+                    <p class="text-gray-500">Select a user to see their history...</p>
+                </div>
+            </div>
+
+            <!-- Recommendations -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Recommended Services</h2>
+                <div id="recommendations-container" class="space-y-2">
+                    <p class="text-gray-500">Select a user to see recommendations...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            $('#user-select').change(function() {
+                const userId = $(this).val();
+                if (!userId) return;
+
+                $.ajax({
+                    url: '/get_recommendations',
+                    method: 'POST',
+                    data: { user_id: userId },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            // Update history
+                            let historyHtml = '<div class="space-y-2">';
+                            response.history.forEach(item => {
+                                historyHtml += `
+                                    <div class="p-3 bg-gray-50 rounded-md">
+                                        <p class="font-medium">${item['AWS Service']}</p>
+                                        <p class="text-sm text-gray-600">
+                                            Interaction: ${item['Interaction Type']} | 
+                                            Rating: ${item['Rating']}
+                                        </p>
+                                    </div>
+                                `;
+                            });
+                            historyHtml += '</div>';
+                            $('#history-container').html(historyHtml);
+
+                            // Update recommendations
+                            let recsHtml = '<div class="space-y-2">';
+                            response.recommendations.forEach((rec, index) => {
+                                const score = (rec.score * 100).toFixed(1);
+                                recsHtml += `
+                                    <div class="p-3 bg-gray-50 rounded-md">
+                                        <p class="font-medium">${index + 1}. ${rec.service}</p>
+                                        <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                                            <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${score}%"></div>
+                                        </div>
+                                        <p class="text-sm text-gray-600 mt-1">Score: ${score}%</p>
+                                    </div>
+                                `;
+                            });
+                            recsHtml += '</div>';
+                            $('#recommendations-container').html(recsHtml);
+                        } else {
+                            alert('Error getting recommendations');
+                        }
+                    },
+                    error: function() {
+                        alert('Error connecting to server');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

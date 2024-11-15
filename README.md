@@ -2,9 +2,7 @@
 
 This demo application is created for the intent to demostrate the AWS Personalize capabilities.
 
-It uses a small version of the [Movie Len Dataset](https://grouplens.org/datasets/movielens) that holds recommendation records for Movies.
-
-The complete explanation of AWS Personalize and details about this code could be found on [My Blog Post](https://www.fullstacklabs.co/blog/build-recommendations-with-aws-personalize)
+It uses the aws_synthetic_service_recommendation_data.csv dataset, which contains synthetic recommendation data for IT services.
 
 ## Requirements
 
