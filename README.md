@@ -55,6 +55,11 @@ python3 personalize_demo_executor.py
 ```bash
 python3 personalize_demo_cleanup.py
 ```
+- For running the app
+  
+```bash
+flask pandas boto3
+```
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
