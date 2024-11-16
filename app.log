@@ -1,0 +1,52 @@
+2024-11-16 10:32:13,157 - botocore.credentials - INFO - Found credentials in shared credentials file: ~/.aws/credentials
+2024-11-16 10:32:13,311 - __main__ - INFO - PersonalizeService initialized with 11 services
+2024-11-16 10:32:13,350 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-11-16 10:32:13,350 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2024-11-16 10:32:13,351 - werkzeug - INFO -  * Restarting with stat
+2024-11-16 10:32:13,959 - botocore.credentials - INFO - Found credentials in shared credentials file: ~/.aws/credentials
+2024-11-16 10:32:14,036 - __main__ - INFO - PersonalizeService initialized with 11 services
+2024-11-16 10:32:14,060 - werkzeug - WARNING -  * Debugger is active!
+2024-11-16 10:32:14,093 - werkzeug - INFO -  * Debugger PIN: 485-768-984
+2024-11-16 10:32:24,279 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:32:24] "GET / HTTP/1.1" 200 -
+2024-11-16 10:32:29,000 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:32:29] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:32:39,127 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:32:39] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:32:42,277 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:32:42] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:32:44,944 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:32:44] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:32:50,062 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:32:50] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:32:53,136 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:32:53] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:32:56,170 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:32:56] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:32:58,810 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:32:58] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:33:01,252 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:33:01] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:33:02,453 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:33:02] "GET / HTTP/1.1" 200 -
+2024-11-16 10:33:04,984 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:33:04] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:33:17,375 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:33:17] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:33:23,352 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:33:23] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:33:25,730 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:33:25] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:33:30,281 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:33:30] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:33:37,474 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:33:37] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:33:40,174 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:33:40] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:33:47,608 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:33:47] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:33:49,503 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:33:49] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:34:28,401 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:34:28] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:34:37,815 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:34:37] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:34:44,455 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:34:44] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:34:48,312 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:34:48] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:34:55,054 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:34:55] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:34:58,222 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:34:58] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:35:01,058 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:35:01] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:35:07,951 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:35:07] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:35:55,457 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:35:55] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:35:58,625 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:35:58] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:36:02,670 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:36:02] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:36:06,644 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:36:06] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:36:13,123 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:36:13] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:36:15,631 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:36:15] "GET / HTTP/1.1" 200 -
+2024-11-16 10:36:18,310 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:36:18] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:36:22,126 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:36:22] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:36:24,814 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:36:24] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:36:27,406 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:36:27] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:36:31,492 - werkzeug - INFO - 127.0.0.1 - - [16/Nov/2024 10:36:31] "POST /get_recommendations HTTP/1.1" 200 -
+2024-11-16 10:39:01,744 - werkzeug - INFO -  * Detected change in '/Users/suguresh/Downloads/aws-personalize-demo-main-2/app.py', reloading
+2024-11-16 10:39:01,910 - werkzeug - INFO -  * Restarting with stat
+2024-11-16 10:40:49,663 - werkzeug - INFO -  * Restarting with stat

@@ -4,39 +4,77 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AWS Service Recommender</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <style>
+        .loading-spinner {
+            display: none;
+            width: 50px;
+            height: 50px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error-message {
+            display: none;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0.375rem;
+            background-color: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #dc2626;
+        }
+    </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100 min-h-screen">
     <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold text-gray-800 mb-8">AWS Service Recommender</h1>
-        
-        <!-- User Selection -->
+        <h1 class="text-3xl font-bold text-gray-800 mb-8 text-center">
+            AWS Service Recommender
+        </h1>
+
         <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <label for="user-select" class="block text-gray-700 font-semibold mb-2">Select User:</label>
-            <select id="user-select" class="w-full p-2 border rounded-md">
+            <label for="userSelect" class="block text-sm font-medium text-gray-700 mb-2">Select User:</label>
+            <select id="userSelect" class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                 <option value="">Select a user...</option>
                 {% for user in users %}
-                <option value="{{ user }}">User {{ user }}</option>
+                    <option value="{{ user }}">User {{ user }}</option>
                 {% endfor %}
             </select>
         </div>
 
-        <!-- Results Container -->
+        <div id="error-message" class="error-message"></div>
+        <div id="loading-spinner" class="loading-spinner"></div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- User History -->
+            <!-- User History Panel -->
             <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-semibold text-gray-800 mb-4">User History</h2>
-                <div id="history-container" class="space-y-2">
-                    <p class="text-gray-500">Select a user to see their history...</p>
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    User History
+                </h2>
+                <div id="history-container" class="space-y-3">
+                    <p class="text-gray-500 text-center">Select a user to see their history...</p>
                 </div>
             </div>
 
-            <!-- Recommendations -->
+            <!-- Recommendations Panel -->
             <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-semibold text-gray-800 mb-4">Recommended Services</h2>
-                <div id="recommendations-container" class="space-y-2">
-                    <p class="text-gray-500">Select a user to see recommendations...</p>
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    Recommended Services
+                </h2>
+                <div id="recommendations-container" class="space-y-3">
+                    <p class="text-gray-500 text-center">Select a user to see recommendations...</p>
                 </div>
             </div>
         </div>
@@ -44,9 +82,14 @@
 
     <script>
         $(document).ready(function() {
-            $('#user-select').change(function() {
+            $('#userSelect').change(function() {
                 const userId = $(this).val();
                 if (!userId) return;
+
+                // Clear error message and show loading spinner
+                $('#error-message').hide();
+                $('#loading-spinner').show();
+                $('#history-container, #recommendations-container').html('');
 
                 $.ajax({
                     url: '/get_recommendations',
@@ -54,44 +97,65 @@
                     data: { user_id: userId },
                     success: function(response) {
                         if (response.status === 'success') {
-                            // Update history
-                            let historyHtml = '<div class="space-y-2">';
-                            response.history.forEach(item => {
-                                historyHtml += `
-                                    <div class="p-3 bg-gray-50 rounded-md">
-                                        <p class="font-medium">${item['AWS Service']}</p>
-                                        <p class="text-sm text-gray-600">
-                                            Interaction: ${item['Interaction Type']} | 
-                                            Rating: ${item['Rating']}
-                                        </p>
-                                    </div>
-                                `;
-                            });
-                            historyHtml += '</div>';
-                            $('#history-container').html(historyHtml);
-
-                            // Update recommendations
-                            let recsHtml = '<div class="space-y-2">';
-                            response.recommendations.forEach((rec, index) => {
-                                const score = (rec.score * 100).toFixed(1);
-                                recsHtml += `
-                                    <div class="p-3 bg-gray-50 rounded-md">
-                                        <p class="font-medium">${index + 1}. ${rec.service}</p>
-                                        <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2">
-                                            <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${score}%"></div>
+                            // Update History
+                            let historyHtml = '';
+                            if (response.history && response.history.length > 0) {
+                                historyHtml = response.history.map(item => `
+                                    <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-all">
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <h3 class="font-medium text-gray-900">${item.service}</h3>
+                                                <p class="text-sm text-gray-600">${item.type}</p>
+                                                <p class="text-xs text-gray-500 mt-1">${item.date}</p>
+                                            </div>
+                                            <div class="flex items-center bg-yellow-50 px-2 py-1 rounded">
+                                                <span class="text-yellow-400 mr-1">★</span>
+                                                <span class="text-sm font-medium text-gray-700">${item.rating}</span>
+                                            </div>
                                         </div>
-                                        <p class="text-sm text-gray-600 mt-1">Score: ${score}%</p>
                                     </div>
-                                `;
-                            });
-                            recsHtml += '</div>';
-                            $('#recommendations-container').html(recsHtml);
+                                `).join('');
+                            } else {
+                                historyHtml = '<p class="text-gray-500 text-center">No history available</p>';
+                            }
+                            
+                            // Update Recommendations
+                            let recommendationsHtml = '';
+                            if (response.recommendations && response.recommendations.length > 0) {
+                                recommendationsHtml = response.recommendations.map(rec => `
+                                    <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-all">
+                                        <div class="flex justify-between items-start">
+                                            <div class="flex-1">
+                                                <h3 class="font-medium text-gray-900">${rec.service}</h3>
+                                                <p class="text-sm text-gray-600 mt-1">${rec.reason}</p>
+                                            </div>
+                                            <div class="ml-4 bg-green-50 px-2 py-1 rounded">
+                                                <span class="text-sm font-medium text-green-700">
+                                                    ${(rec.confidence * 100).toFixed(0)}%
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('');
+                            } else {
+                                recommendationsHtml = '<p class="text-gray-500 text-center">No recommendations available</p>';
+                            }
+
+                            $('#history-container').html(historyHtml);
+                            $('#recommendations-container').html(recommendationsHtml);
                         } else {
-                            alert('Error getting recommendations');
+                            $('#error-message')
+                                .html(response.message || 'An error occurred while fetching data.')
+                                .show();
                         }
                     },
-                    error: function() {
-                        alert('Error connecting to server');
+                    error: function(xhr, status, error) {
+                        $('#error-message')
+                            .html(`Failed to fetch data: ${error}`)
+                            .show();
+                    },
+                    complete: function() {
+                        $('#loading-spinner').hide();
                     }
                 });
             });

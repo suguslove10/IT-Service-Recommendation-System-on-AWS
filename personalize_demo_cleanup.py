@@ -2,208 +2,251 @@ import logging
 import boto3
 import time
 from botocore.exceptions import ClientError
+from typing import List, Dict, Optional
+from personalize.data_manager import DataManager
 
-logging.basicConfig(
-    format='%(asctime)s-%(levelname)s: %(message)s',
-    level=logging.INFO
-)
-logger = logging.getLogger(__name__)
+class PersonalizeCleanup:
+    def __init__(self):
+        self.logger = self._setup_logger()
+        self.personalize = boto3.client('personalize')
+        self.s3 = boto3.resource('s3')
+        self.iam = boto3.client('iam')
+        self.account_id = boto3.client('sts').get_caller_identity()['Account']
+        self.region = boto3.session.Session().region_name
+        self.data_manager = DataManager().load_data_to_json()
 
-def wait_for_resource_deletion(personalize, arn, check_method):
-    """Wait for resource deletion to complete"""
-    max_tries = 20
-    tries = 0
-    while tries < max_tries:
-        try:
-            check_method(arn)
-            time.sleep(10)
-            tries += 1
-        except ClientError as e:
-            if e.response['Error']['Code'] == 'ResourceNotFoundException':
-                return True
-            raise e
-    return False
+    def _setup_logger(self) -> logging.Logger:
+        logger = logging.getLogger('PersonalizeCleanup')
+        logger.setLevel(logging.INFO)
+        if not logger.handlers:
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+        return logger
 
-def delete_personalize_resources():
-    try:
-        personalize = boto3.client('personalize')
-        
-        # Get all dataset groups
-        dataset_groups = personalize.list_dataset_groups()['datasetGroups']
-        
-        for group in dataset_groups:
-            group_arn = group['datasetGroupArn']
-            logger.info(f"Processing dataset group: {group_arn}")
-            
-            # First, get all datasets
+    def wait_for_resource_status(self, arn: str, describe_method, status_field: str, 
+                               target_statuses: List[str], timeout: int = 3600) -> bool:
+        """Wait for a resource to reach target status"""
+        start_time = time.time()
+        while time.time() - start_time < timeout:
             try:
-                datasets = personalize.list_datasets(datasetGroupArn=group_arn).get('datasets', [])
+                response = describe_method(arn)
+                current_status = response.get(status_field, {}).get('status')
+                self.logger.info(f"Current status of {arn}: {current_status}")
                 
-                # For each dataset, get and delete its import jobs
-                for dataset in datasets:
-                    dataset_arn = dataset['datasetArn']
-                    logger.info(f"Processing dataset: {dataset_arn}")
+                if current_status in target_statuses:
+                    return True
                     
-                    try:
-                        import_jobs = personalize.list_dataset_import_jobs(
-                            datasetArn=dataset_arn
-                        ).get('datasetImportJobs', [])
-                        
-                        for job in import_jobs:
-                            job_arn = job['datasetImportJobArn']
-                            logger.info(f"Waiting for import job to complete: {job_arn}")
-                            while True:
-                                status = personalize.describe_dataset_import_job(
-                                    datasetImportJobArn=job_arn
-                                )['datasetImportJob']['status']
-                                if status in ['ACTIVE', 'CREATE FAILED']:
-                                    break
-                                time.sleep(10)
-                    except Exception as e:
-                        logger.warning(f"Error processing import jobs: {str(e)}")
-                
-                # Now find and delete all campaigns
-                try:
-                    solutions = personalize.list_solutions(
-                        datasetGroupArn=group_arn
-                    ).get('solutions', [])
-                    
-                    for solution in solutions:
-                        solution_arn = solution['solutionArn']
-                        
-                        # Get and delete campaigns for this solution
-                        campaigns = personalize.list_campaigns(
-                            solutionArn=solution_arn
-                        ).get('campaigns', [])
-                        
-                        for campaign in campaigns:
-                            campaign_arn = campaign['campaignArn']
-                            logger.info(f"Deleting campaign: {campaign_arn}")
-                            try:
-                                personalize.delete_campaign(campaignArn=campaign_arn)
-                                wait_for_resource_deletion(
-                                    personalize, 
-                                    campaign_arn,
-                                    lambda arn: personalize.describe_campaign(campaignArn=arn)
-                                )
-                            except Exception as e:
-                                logger.warning(f"Error deleting campaign: {str(e)}")
-                        
-                        # Delete solution versions
-                        versions = personalize.list_solution_versions(
-                            solutionArn=solution_arn
-                        ).get('solutionVersions', [])
-                        
-                        for version in versions:
-                            version_arn = version['solutionVersionArn']
-                            logger.info(f"Deleting solution version: {version_arn}")
-                            try:
-                                personalize.delete_solution_version(solutionVersionArn=version_arn)
-                                time.sleep(5)
-                            except Exception as e:
-                                logger.warning(f"Error deleting solution version: {str(e)}")
-                        
-                        # Delete the solution
-                        logger.info(f"Deleting solution: {solution_arn}")
-                        try:
-                            personalize.delete_solution(solutionArn=solution_arn)
-                            time.sleep(5)
-                        except Exception as e:
-                            logger.warning(f"Error deleting solution: {str(e)}")
-                            
-                except Exception as e:
-                    logger.warning(f"Error processing solutions and campaigns: {str(e)}")
-                
-                # Delete datasets
-                for dataset in datasets:
-                    dataset_arn = dataset['datasetArn']
-                    logger.info(f"Deleting dataset: {dataset_arn}")
-                    try:
-                        personalize.delete_dataset(datasetArn=dataset_arn)
-                        time.sleep(5)
-                    except Exception as e:
-                        logger.warning(f"Error deleting dataset: {str(e)}")
-                
-                # Delete dataset group
-                logger.info(f"Deleting dataset group: {group_arn}")
-                try:
-                    personalize.delete_dataset_group(datasetGroupArn=group_arn)
-                    time.sleep(5)
-                except Exception as e:
-                    logger.warning(f"Error deleting dataset group: {str(e)}")
-                
-            except Exception as e:
-                logger.error(f"Error processing datasets: {str(e)}")
-        
-        # Finally, clean up schemas
-        try:
-            schemas = personalize.list_schemas()['schemas']
-            for schema in schemas:
-                if 'it-service' in schema['name'].lower():
-                    schema_arn = schema['schemaArn']
-                    logger.info(f"Deleting schema: {schema_arn}")
-                    try:
-                        personalize.delete_schema(schemaArn=schema_arn)
-                    except Exception as e:
-                        logger.warning(f"Error deleting schema: {str(e)}")
-        except Exception as e:
-            logger.warning(f"Error cleaning up schemas: {str(e)}")
-            
-        return True
-    except Exception as e:
-        logger.error(f"Error in delete_personalize_resources: {str(e)}")
+                time.sleep(60)  # Check every minute
+            except ClientError as e:
+                if 'ResourceNotFoundException' in str(e):
+                    return True
+                raise e
         return False
 
-def cleanup_s3_and_iam():
-    try:
-        # Get account info
-        account_id = boto3.client('sts').get_caller_identity()['Account']
-        region = boto3.session.Session().region_name
-        bucket_name = f"{account_id}-{region}-it-service-bucket"
-        role_name = "PersonalizeITServiceRole"
+    def wait_for_campaign(self, campaign_arn: str) -> bool:
+        """Wait for campaign to be in a deletable state"""
+        return self.wait_for_resource_status(
+            campaign_arn,
+            lambda arn: self.personalize.describe_campaign(campaignArn=arn),
+            'campaign',
+            ['ACTIVE', 'CREATE FAILED']
+        )
 
-        # Clean up S3
-        logger.info(f"Cleaning up S3 bucket: {bucket_name}")
+    def wait_for_solution(self, solution_arn: str) -> bool:
+        """Wait for solution to be in a deletable state"""
+        return self.wait_for_resource_status(
+            solution_arn,
+            lambda arn: self.personalize.describe_solution(solutionArn=arn),
+            'solution',
+            ['ACTIVE', 'CREATE FAILED']
+        )
+
+    def delete_campaign_with_retry(self, campaign_arn: str, max_attempts: int = 5) -> bool:
+        """Delete campaign with retries"""
+        for attempt in range(max_attempts):
+            try:
+                self.logger.info(f"Attempting to delete campaign (attempt {attempt + 1}): {campaign_arn}")
+                
+                # Wait for campaign to be in deletable state
+                if not self.wait_for_campaign(campaign_arn):
+                    self.logger.error(f"Campaign failed to reach deletable state: {campaign_arn}")
+                    continue
+
+                self.personalize.delete_campaign(campaignArn=campaign_arn)
+                
+                # Wait for deletion to complete
+                start_time = time.time()
+                while time.time() - start_time < 1800:  # 30 minutes timeout
+                    try:
+                        self.personalize.describe_campaign(campaignArn=campaign_arn)
+                        time.sleep(30)
+                    except ClientError as e:
+                        if 'ResourceNotFoundException' in str(e):
+                            self.logger.info(f"Campaign successfully deleted: {campaign_arn}")
+                            return True
+                        raise e
+                        
+            except ClientError as e:
+                if 'ResourceNotFoundException' in str(e):
+                    return True
+                elif 'ResourceInUseException' in str(e):
+                    self.logger.warning(f"Campaign in use, waiting 2 minutes before retry: {str(e)}")
+                    time.sleep(120)
+                else:
+                    self.logger.error(f"Error deleting campaign: {str(e)}")
+            except Exception as e:
+                self.logger.error(f"Unexpected error deleting campaign: {str(e)}")
+            
+            if attempt < max_attempts - 1:
+                time.sleep(60)  # Wait between attempts
+                
+        return False
+
+    def delete_solution_with_retry(self, solution_arn: str, max_attempts: int = 5) -> bool:
+        """Delete solution with retries"""
+        for attempt in range(max_attempts):
+            try:
+                self.logger.info(f"Attempting to delete solution (attempt {attempt + 1}): {solution_arn}")
+                
+                # Wait for solution to be in deletable state
+                if not self.wait_for_solution(solution_arn):
+                    self.logger.error(f"Solution failed to reach deletable state: {solution_arn}")
+                    continue
+
+                self.personalize.delete_solution(solutionArn=solution_arn)
+                
+                # Wait for deletion to complete
+                start_time = time.time()
+                while time.time() - start_time < 1800:  # 30 minutes timeout
+                    try:
+                        self.personalize.describe_solution(solutionArn=solution_arn)
+                        time.sleep(30)
+                    except ClientError as e:
+                        if 'ResourceNotFoundException' in str(e):
+                            self.logger.info(f"Solution successfully deleted: {solution_arn}")
+                            return True
+                        raise e
+                        
+            except ClientError as e:
+                if 'ResourceNotFoundException' in str(e):
+                    return True
+                elif 'ResourceInUseException' in str(e):
+                    self.logger.warning(f"Solution in use, waiting 2 minutes before retry: {str(e)}")
+                    time.sleep(120)
+                else:
+                    self.logger.error(f"Error deleting solution: {str(e)}")
+            except Exception as e:
+                self.logger.error(f"Unexpected error deleting solution: {str(e)}")
+            
+            if attempt < max_attempts - 1:
+                time.sleep(60)  # Wait between attempts
+                
+        return False
+
+    def cleanup_all(self) -> None:
+        """Main cleanup method with improved error handling and retries"""
+        self.logger.info("Starting cleanup process...")
+        
         try:
-            s3 = boto3.resource('s3')
-            bucket = s3.Bucket(bucket_name)
+            # Delete campaign first
+            if hasattr(self.data_manager, 'campaign_arn') and self.data_manager.campaign_arn:
+                campaign_deleted = self.delete_campaign_with_retry(self.data_manager.campaign_arn)
+                if not campaign_deleted:
+                    self.logger.error("Failed to delete campaign after all retries")
+                time.sleep(60)
+
+            # Delete solution
+            if hasattr(self.data_manager, 'solution_arn') and self.data_manager.solution_arn:
+                solution_deleted = self.delete_solution_with_retry(self.data_manager.solution_arn)
+                if not solution_deleted:
+                    self.logger.error("Failed to delete solution after all retries")
+                time.sleep(60)
+
+            # Delete dataset
+            if hasattr(self.data_manager, 'interactions_dataset_arn') and self.data_manager.interactions_dataset_arn:
+                try:
+                    self.logger.info(f"Deleting dataset: {self.data_manager.interactions_dataset_arn}")
+                    self.personalize.delete_dataset(
+                        datasetArn=self.data_manager.interactions_dataset_arn
+                    )
+                    time.sleep(60)
+                except ClientError as e:
+                    self.logger.error(f"Error deleting dataset: {str(e)}")
+
+            # Delete schema
+            if hasattr(self.data_manager, 'schema_arn') and self.data_manager.schema_arn:
+                try:
+                    self.logger.info(f"Deleting schema: {self.data_manager.schema_arn}")
+                    self.personalize.delete_schema(schemaArn=self.data_manager.schema_arn)
+                    time.sleep(30)
+                except ClientError as e:
+                    self.logger.error(f"Error deleting schema: {str(e)}")
+
+            # Delete dataset group
+            if hasattr(self.data_manager, 'dataset_group_arn') and self.data_manager.dataset_group_arn:
+                try:
+                    self.logger.info(f"Deleting dataset group: {self.data_manager.dataset_group_arn}")
+                    self.personalize.delete_dataset_group(
+                        datasetGroupArn=self.data_manager.dataset_group_arn
+                    )
+                except ClientError as e:
+                    self.logger.error(f"Error deleting dataset group: {str(e)}")
+
+            # Cleanup S3 and IAM
+            self.cleanup_s3_resources()
+            self.cleanup_iam_resources()
+
+            self.logger.info("Cleanup process completed")
+            
+        except Exception as e:
+            self.logger.error(f"Error in cleanup process: {str(e)}")
+            raise
+
+    def cleanup_s3_resources(self) -> None:
+        """Clean up S3 bucket and contents"""
+        try:
+            bucket_name = f"{self.account_id}-{self.region}-it-service-bucket"
+            bucket = self.s3.Bucket(bucket_name)
+            
+            self.logger.info(f"Cleaning up S3 bucket: {bucket_name}")
             bucket.objects.all().delete()
             bucket.delete()
+            
         except ClientError as e:
             if e.response['Error']['Code'] != 'NoSuchBucket':
-                logger.warning(f"Error cleaning up S3: {str(e)}")
+                self.logger.error(f"Error cleaning up S3: {str(e)}")
 
-        # Clean up IAM
-        logger.info(f"Cleaning up IAM role: {role_name}")
+    def cleanup_iam_resources(self) -> None:
+        """Clean up IAM roles and policies"""
         try:
-            iam = boto3.client('iam')
+            role_name = "PersonalizeITServiceRole"
+            
+            # Detach policies
             for policy_arn in [
                 'arn:aws:iam::aws:policy/service-role/AmazonPersonalizeFullAccess',
                 'arn:aws:iam::aws:policy/AmazonS3FullAccess'
             ]:
                 try:
-                    iam.detach_role_policy(RoleName=role_name, PolicyArn=policy_arn)
-                    time.sleep(2)
+                    self.iam.detach_role_policy(
+                        RoleName=role_name,
+                        PolicyArn=policy_arn
+                    )
                 except ClientError as e:
                     if e.response['Error']['Code'] != 'NoSuchEntity':
-                        logger.warning(f"Error detaching policy: {str(e)}")
-            
+                        self.logger.error(f"Error detaching policy: {str(e)}")
+
+            # Delete the role
             try:
-                iam.delete_role(RoleName=role_name)
+                self.iam.delete_role(RoleName=role_name)
             except ClientError as e:
                 if e.response['Error']['Code'] != 'NoSuchEntity':
-                    logger.warning(f"Error deleting role: {str(e)}")
+                    self.logger.error(f"Error deleting role: {str(e)}")
                     
         except Exception as e:
-            logger.warning(f"Error cleaning up IAM: {str(e)}")
-
-        return True
-    except Exception as e:
-        logger.error(f"Error in cleanup_s3_and_iam: {str(e)}")
-        return False
+            self.logger.error(f"Error cleaning up IAM resources: {str(e)}")
 
 if __name__ == "__main__":
-    logger.info("Starting cleanup process...")
-    delete_personalize_resources()
-    cleanup_s3_and_iam()
-    logger.info("Cleanup process completed")
+    cleanup = PersonalizeCleanup()
+    cleanup.cleanup_all()
