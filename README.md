@@ -43,6 +43,11 @@ export AWS_DEFAULT_REGION=<AWS Default region>
 ```bash
 python personalize_demo_creator.py
 ```
+- To run the web application 
+
+```bash
+python3 app.py
+```
 
 - For actually using the AWS Personalize Solution Version to find out recomendation for a random user
 
